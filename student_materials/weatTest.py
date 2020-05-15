@@ -71,7 +71,7 @@ def getAverageSimilarity(targetVec, targetLength, attrVectors, attrLengths):
 def getListData(conceptWords, tokenizer, transformer):
     vectors = [[], []]
     lengths = [[], []]
-    for target_idx in range(len(conceptWords)):
+    for target_idx in range(len(conceptWords[0])):
         if len(conceptWords[0][target_idx]) > 0:
             word_id = tokenizer.encode(conceptWords[0][target_idx])[1]
             v = transformer.embeddings.word_embeddings.weight[word_id].detach().numpy()
@@ -209,4 +209,4 @@ def run_weat(rundirect):
 
 
 if __name__ == "__main__":
-    run_weat()
+    run_weat(['bert-base-multilingual-cased', 'gender_m', 'gender_f', 'pleasant', 'unpleasant'])
