@@ -120,7 +120,7 @@ def run_weat(rundirect):
 
     topWordsT1 = rankAttributes( target1Vecs[0], target1Lengths[0], np.concatenate([attr1Data[0], attr2Data[0]]),
             np.concatenate([attr1Lengths[0], attr2Lengths[0]]), np.concatenate([attribute1[0], attribute2[0]]))
-    for word in topWordsT1:
+    for word in topWordsT1[::-1]:
         print("\t"+word)
 
     print()
@@ -128,7 +128,7 @@ def run_weat(rundirect):
 
     topWordsT2 = rankAttributes( target2Vecs[0], target2Lengths[0], np.concatenate([attr1Data[1], attr2Data[1]]),
             np.concatenate([attr1Lengths[1], attr2Lengths[1]]), np.concatenate([attribute1[1], attribute2[1]]))
-    for word in topWordsT2:
+    for word in topWordsT2[::-1]:
         print("\t"+word)
 
     print()
