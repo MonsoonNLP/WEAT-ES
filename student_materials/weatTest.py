@@ -92,23 +92,17 @@ def getListData(conceptWords, tokenizer, transformer):
 
 def rankAttributes(targetData, targetLengths, attrData, attrLengths, attrWords, n= 5):
     """Return the n highest similarity scores between the target and all attr"""
-    print(attrData[0])
     attrSims = [getAverageSimilarity(attrData[i], attrLengths[i], targetData, targetLengths) for i in range(attrData.shape[0])]
     return attrWords[np.argsort(attrSims)[-n:]]
 
-def main():
-    if len(argv) != 6:
-        print("usage: weatTest.py npyFile target1file target2file attribute1file attribute2file")
-        print("   e.g., weatTest.py twitter flowers insect pleasant unpleasant")
-        return
-
+def run_weat(rundirect):
     #parse inputs, load in glove vectors and wordlists
-    tokenizer = AutoTokenizer.from_pretrained(argv[1])
-    model = BertModel.from_pretrained(argv[1])
-    target1Name = argv[2]
-    target2Name = argv[3]
-    attr1Name = argv[4]
-    attr2Name = argv[5]
+    tokenizer = AutoTokenizer.from_pretrained(rundirect[0])
+    model = BertModel.from_pretrained(rundirect[0])
+    target1Name = rundirect[1]
+    target2Name = rundirect[2]
+    attr1Name = rundirect[3]
+    attr2Name = rundirect[4]
 
     target1 = loadwordlist(target1Name)
     target2 = loadwordlist(target2Name)
@@ -123,9 +117,6 @@ def main():
     #Find more similar attribute words for each target list
     print()
     print("Top 5 most similar attribute words to %s:" % target1Name)
-    print(attr1Data)
-    print(attr1Data[0])
-    print(np.concatenate([attr1Data[0], attr2Data[0]]))
 
     topWordsT1 = rankAttributes( target1Vecs[0], target1Lengths[0], np.concatenate([attr1Data[0], attr2Data[0]]),
             np.concatenate([attr1Lengths[0], attr2Lengths[0]]), np.concatenate([attribute1[0], attribute2[0]]))
@@ -214,8 +205,8 @@ def main():
     labels[-1] = "(%s) " % attr1Name + labels[-1]
     ax2.set_yticklabels(labels)
 
-    plt.show()
+    return plt
 
 
 if __name__ == "__main__":
-    main()
+    run_weat()
