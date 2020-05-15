@@ -3,17 +3,17 @@
 Perform a similar test as Caliskan et al (this code does not do a
 permutation test for statistical significance).  You  will provide, in order
 
-  the name of the word embedding model (twitter, web, or wikipedia)
-  the two target words (e.g, flowers and insect)
+  the model name on huggingface.co/models
+  the two target words (e.g, gender_m and gender_f)
   the two attribute words (e.g., pleasant and unpleasant)
 
 For example:
-./weatTest.py twitter names_europe names_africa pleasant unpleasant
+./weatTest.py bert-base-multilingual-cased gender_m gender_f pleasant unpleasant
 
 You can find the files containing the list of target/attribute words in the
  wordlists directory.  The program also provides a visualization of the
  similarities between the targets and attributes
-Copyright (C) 2019  Ameet Soni, Swarthmore College
+Original code copyright (C) 2019  Ameet Soni, Swarthmore College
 Email: asoni1@swarthmore.edu
 
 This program is free software: you can redistribute it and/or modify
@@ -38,10 +38,11 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+from transformers import AutoTokenizer, BertModel
 
 datadir = "wordlists/"
 
-def loadwordlist(filename, reference):
+def loadwordlist(filename):
     """loads and returns all words in the given file.  Omits words not in the
     word embedding matrix"""
     if not os.path.exists(datadir+filename+".txt"):
@@ -50,31 +51,48 @@ def loadwordlist(filename, reference):
         for f in os.listdir(datadir):
             print(os.path.splitext(f)[0])
         sys.exit()
-    omits = []
     with open(datadir+filename+".txt",'r') as f:
-        words = []
+        words = [[], []]
         for w in f.readlines():
-            toInsert = w.strip().lower()
-            if toInsert in reference:
-                words.append(toInsert)
-            else:
-                omits.append(toInsert)
-        if len(omits):
-            print("Warning: the following words from %s are not in the GloVe index: %s" % (filename, ', '.join(omits)))
+            toInsert = w.strip().lower().split(' ')
+            words[0].append(toInsert[0])
+            words[1].append(toInsert[-1])
     return words
 
 def getAverageSimilarity(targetVec, targetLength, attrVectors, attrLengths):
     """Calculates average similarity between words in the target list and attribute
     list"""
+    # print(targetVec)
+    # print(targetLength)
+    # print(attrVectors[0])
+    # print(attrLengths[0])
     return np.average([cosine_similarity(targetVec, targetLength, attrVectors[i], attrLengths[i]) for i in range(attrVectors.shape[0])])
 
-def getListData(conceptWords, allWords, allArray, allLengths):
-    """Return the GloVe Vectors and Lengths for a subset of conceptWords"""
-    inds = [allWords.index(target) for target in conceptWords]
-    return (allArray[inds], allLengths[inds])
+def getListData(conceptWords, tokenizer, transformer):
+    vectors = [[], []]
+    lengths = [[], []]
+    for target_idx in range(len(conceptWords)):
+        if len(conceptWords[0][target_idx]) > 0:
+            word_id = tokenizer.encode(conceptWords[0][target_idx])[1]
+            v = transformer.embeddings.word_embeddings.weight[word_id].detach().numpy()
+            if conceptWords[0][target_idx] == conceptWords[1][target_idx]:
+                v2 = v
+            else:
+                word_2 = tokenizer.encode(conceptWords[1][target_idx])[1]
+                v2 = transformer.embeddings.word_embeddings.weight[word_2].detach().numpy()
+            vectors[0].append(v)
+            lengths[0].append(np.linalg.norm(v))
+            vectors[1].append(v2)
+            lengths[1].append(np.linalg.norm(v2))
+    vectors[0] = np.array(vectors[0])
+    vectors[1] = np.array(vectors[1])
+    lengths[0] = np.array(lengths[0])
+    lengths[1] = np.array(lengths[1])
+    return (vectors, lengths)
 
 def rankAttributes(targetData, targetLengths, attrData, attrLengths, attrWords, n= 5):
     """Return the n highest similarity scores between the target and all attr"""
+    print(attrData[0])
     attrSims = [getAverageSimilarity(attrData[i], attrLengths[i], targetData, targetLengths) for i in range(attrData.shape[0])]
     return attrWords[np.argsort(attrSims)[-n:]]
 
@@ -85,56 +103,56 @@ def main():
         return
 
     #parse inputs, load in glove vectors and wordlists
-    wordlist, array, lengths = load_glove_vectors(argv[1])
+    tokenizer = AutoTokenizer.from_pretrained(argv[1])
+    model = BertModel.from_pretrained(argv[1])
     target1Name = argv[2]
     target2Name = argv[3]
     attr1Name = argv[4]
     attr2Name = argv[5]
 
-    target1 = loadwordlist(target1Name,wordlist)
-    target2 = loadwordlist(target2Name,wordlist)
-    attribute1 = loadwordlist(attr1Name,wordlist)
-    attribute2 = loadwordlist(attr2Name,wordlist)
-    if not (target1 and target2 and attribute1 and attribute2):
-        print("Error loadding one of the word lists; lists are either empty")
-        print(" or not in your learned word embedding data set")
-        return
+    target1 = loadwordlist(target1Name)
+    target2 = loadwordlist(target2Name)
+    attribute1 = loadwordlist(attr1Name)
+    attribute2 = loadwordlist(attr2Name)
 
-    target1Data, target1Lengths = getListData(target1, wordlist, array, lengths)
-    target2Data, target2Lengths = getListData(target2, wordlist, array, lengths)
-    attr1Data, attr1Lengths = getListData(attribute1, wordlist, array, lengths)
-    attr2Data, attr2Lengths = getListData(attribute2, wordlist, array, lengths)
-
+    target1Vecs, target1Lengths = getListData(target1, tokenizer, model)
+    target2Vecs, target2Lengths = getListData(target2, tokenizer, model)
+    attr1Data, attr1Lengths = getListData(attribute1, tokenizer, model)
+    attr2Data, attr2Lengths = getListData(attribute2, tokenizer, model)
 
     #Find more similar attribute words for each target list
     print()
     print("Top 5 most similar attribute words to %s:" % target1Name)
-    topWordsT1 = rankAttributes(target1Data, target1Lengths, np.concatenate([attr1Data, attr2Data]),
-            np.concatenate([attr1Lengths, attr2Lengths]), np.concatenate([attribute1, attribute2]))
+    print(attr1Data)
+    print(attr1Data[0])
+    print(np.concatenate([attr1Data[0], attr2Data[0]]))
+
+    topWordsT1 = rankAttributes( target1Vecs[0], target1Lengths[0], np.concatenate([attr1Data[0], attr2Data[0]]),
+            np.concatenate([attr1Lengths[0], attr2Lengths[0]]), np.concatenate([attribute1[0], attribute2[0]]))
     for word in topWordsT1:
         print("\t"+word)
 
     print()
     print("Top 5 most similar attribute words to %s:" % target2Name)
 
-    topWordsT2 = rankAttributes(target2Data, target2Lengths, np.concatenate([attr1Data, attr2Data]),
-            np.concatenate([attr1Lengths, attr2Lengths]), np.concatenate([attribute1, attribute2]))
+    topWordsT2 = rankAttributes( target2Vecs[0], target2Lengths[0], np.concatenate([attr1Data[1], attr2Data[1]]),
+            np.concatenate([attr1Lengths[1], attr2Lengths[1]]), np.concatenate([attribute1[1], attribute2[1]]))
     for word in topWordsT2:
         print("\t"+word)
 
     print()
     #calculate similarities between target 1 and both attributes
-    targ1attr1Sims = [getAverageSimilarity(target1Data[i], target1Lengths[i], attr1Data, attr1Lengths)
-        for i in range(target1Data.shape[0])]
-    targ1attr2Sims = [getAverageSimilarity(target1Data[i], target1Lengths[i], attr2Data, attr2Lengths)
-        for i in range(target1Data.shape[0])]
+    targ1attr1Sims = [getAverageSimilarity( target1Vecs[0][i], target1Lengths[0][i], attr1Data[0], attr1Lengths[0])
+        for i in range( target1Vecs[0].shape[0])]
+    targ1attr2Sims = [getAverageSimilarity( target1Vecs[0][i], target1Lengths[0][i], attr2Data[0], attr2Lengths[0])
+        for i in range( target1Vecs[0].shape[0])]
     targ1SimDiff = np.subtract(targ1attr1Sims, targ1attr2Sims)
 
     #calculate similarities between target 2 and both attributes
-    targ2attr1Sims = [getAverageSimilarity(target2Data[i], target2Lengths[i], attr1Data, attr1Lengths)
-        for i in range(target2Data.shape[0])]
-    targ2attr2Sims = [getAverageSimilarity(target2Data[i], target2Lengths[i], attr2Data, attr2Lengths)
-        for i in range(target2Data.shape[0])]
+    targ2attr1Sims = [getAverageSimilarity( target2Vecs[1][i], target2Lengths[1][i], attr1Data[1], attr1Lengths[1])
+        for i in range( target2Vecs[1].shape[0])]
+    targ2attr2Sims = [getAverageSimilarity( target2Vecs[1][i], target2Lengths[1][i], attr2Data[1], attr2Lengths[1])
+        for i in range( target2Vecs[1].shape[0])]
     targ2SimDiff = np.subtract(targ2attr1Sims, targ2attr2Sims)
 
     #effect size is avg difference in similarities divided by standard dev
@@ -173,7 +191,7 @@ def main():
     df["Target"] = [target1Name]*len(targ1SimDiff) + [target2Name]*len(targ2SimDiff)
     ax = sns.boxplot(x="Target", y="Difference", data=df, ax=ax2)
 
-    
+
     ticks = ax1.get_yticks()
     mx = max(abs(ticks[0]),ticks[-1])
     mx = int(mx*10+.99)/10.0
@@ -195,7 +213,7 @@ def main():
     labels[len(labels)//2] = "(neutral) 0.0"
     labels[-1] = "(%s) " % attr1Name + labels[-1]
     ax2.set_yticklabels(labels)
-    
+
     plt.show()
 
 
