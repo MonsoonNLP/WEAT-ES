@@ -27,9 +27,13 @@ Here we compare Multilingual BERT results - be sure to put the two targets
 (gender_m and gender_f) in that order to be consistent with the order in the word lists
 
 ```
-pip3 install transformers
-./weatTest.py bert-base-multilingual-cased gender_m gender_f pleasant unpleasant
+pip3 install transformers numpy
+run_weat(['dccuchile/bert-base-spanish-wwm-cased', 'gender_m', 'gender_f', 'pleasant', 'unpleasant'])
 ```
+
+## Sample notebook
+
+https://colab.research.google.com/drive/1Yicr3qSkh0reKBEYwohygM3RAQdEirxf
 
 ## License
 
