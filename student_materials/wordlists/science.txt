@@ -1,8 +1,8 @@
-science
-technology
-physics
-chemistry
+ciencia
+tecnología
+física
+química
 Einstein
 NASA
-experiment
-astronomy
+experimento
+astronomía

@@ -1,8 +1,8 @@
-home
-parents
-children
-family
-cousins
-marriage
-wedding
-relatives
+casa
+padres madres
+niños niñas
+familia
+primos primas
+matrimonio
+boda
+parientes

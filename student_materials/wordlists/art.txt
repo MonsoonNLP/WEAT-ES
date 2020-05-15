@@ -1,8 +1,8 @@
-poetry
-art
+poesía
+arte
 Shakespeare
-dance
-literature
-novel
-symphony
+baile
+literatura
+novela
+sinfonía
 drama
