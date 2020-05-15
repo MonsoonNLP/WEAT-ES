@@ -42,7 +42,7 @@ from transformers import AutoTokenizer, BertModel
 
 datadir = "wordlists/"
 
-def loadwordlist(filename):
+def loadwordlist(filename, male_word_lists=False):
     """loads and returns all words in the given file.  Omits words not in the
     word embedding matrix"""
     if not os.path.exists(datadir+filename+".txt"):
@@ -56,7 +56,10 @@ def loadwordlist(filename):
         for w in f.readlines():
             toInsert = w.strip().lower().split(' ')
             words[0].append(toInsert[0])
-            words[1].append(toInsert[-1])
+            if male_word_lists:
+                words[1].append(toInsert[0])
+            else:
+                words[1].append(toInsert[-1])
     return words
 
 def getAverageSimilarity(targetVec, targetLength, attrVectors, attrLengths):
@@ -95,7 +98,7 @@ def rankAttributes(targetData, targetLengths, attrData, attrLengths, attrWords, 
     attrSims = [getAverageSimilarity(attrData[i], attrLengths[i], targetData, targetLengths) for i in range(attrData.shape[0])]
     return attrWords[np.argsort(attrSims)[-n:]]
 
-def run_weat(rundirect):
+def run_weat(rundirect, male_word_lists=False):
     #parse inputs, load in glove vectors and wordlists
     tokenizer = AutoTokenizer.from_pretrained(rundirect[0])
     model = BertModel.from_pretrained(rundirect[0])
@@ -106,8 +109,8 @@ def run_weat(rundirect):
 
     target1 = loadwordlist(target1Name)
     target2 = loadwordlist(target2Name)
-    attribute1 = loadwordlist(attr1Name)
-    attribute2 = loadwordlist(attr2Name)
+    attribute1 = loadwordlist(attr1Name, male_word_lists)
+    attribute2 = loadwordlist(attr2Name, male_word_lists)
 
     target1Vecs, target1Lengths = getListData(target1, tokenizer, model)
     target2Vecs, target2Lengths = getListData(target2, tokenizer, model)
@@ -209,4 +212,4 @@ def run_weat(rundirect):
 
 
 if __name__ == "__main__":
-    run_weat(['bert-base-multilingual-cased', 'gender_m', 'gender_f', 'pleasant', 'unpleasant'])
+    run_weat(['dccuchile/bert-base-spanish-wwm-cased', 'gender_m', 'gender_f', 'pleasant', 'unpleasant'], male_word_lists=False)
