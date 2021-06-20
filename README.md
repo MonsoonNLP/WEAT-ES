@@ -31,6 +31,13 @@ pip3 install transformers numpy
 run_weat(['dccuchile/bert-base-spanish-wwm-cased', 'gender_m', 'gender_f', 'pleasant', 'unpleasant'])
 ```
 
+## Alternatives / Updates
+
+XWEAT, a more rigorous cross-lingual WEAT dataset, was published in 2019: https://github.com/anlausch/XWEAT
+
+"Intrinsic Bias Metrics Do Not Correlate with Application Bias" identifies translation issues in XWEAT data,
+and did not find a correlation between intrinsic bias (with embedding-level biases such as WEAT) and final application bias. https://arxiv.org/abs/2012.15859
+
 ## Sample notebook
 
 https://colab.research.google.com/drive/1Yicr3qSkh0reKBEYwohygM3RAQdEirxf
